@@ -69,7 +69,7 @@ ga_domain: honghaozhilian.github.io
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "享受生活"
-sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: https://avatars3.githubusercontent.com/u/11326695?s=40&v=4      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
