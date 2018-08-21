@@ -31,16 +31,20 @@ tags:
 - [AMD和CMD规范区别](#AMD和CMD规范区别)
 - [cmd的核心原理是什么](#cmd的核心原理是什么)
 - [事件的捕获冒泡的应用场景](#事件的捕获冒泡的应用场景)
-- [编写一个EventUtil工具类实现事件管理兼容](#编写一个EventUtil工具类实现事件管理兼容)
+- [编写一个工具类实现事件管理兼容](#编写一个工具类实现事件管理兼容)
 - [事件节流与防抖动](#事件节流)
 - [js作用域和变量声明提升](#js作用域和变量声明提升)
-- [es6的块式作用域和let](#es6的块式作用域和let)
 - [call和apply的区别](#call和apply的区别)
 - [bind函数的实现](#bind函数的实现)
 - [运算符的优先级](#运算符的优先级)
 - [==的判断过程](#==的判断过程)
 - [对象到字符串的转换](#对象到字符串的转换)
 - [对象到数字的转换](#对象到数字的转换)
+- [哪些操作会造成内存泄漏](#哪些操作会造成内存泄漏)
+- [promise相关概念](#promise相关概念)
+- [set与map结构](#set与map结构)
+- [async与await的应用](#async与await的应用)
+- [es6的迭代器](#es6的迭代器)
 
 ## offsetwidth和clientwidth区别
 > - offsetWidth/offsetHeight返回值包含content + padding + border，效果e.getBoundingClientRect()相同
@@ -352,22 +356,258 @@ tags:
 - 事件捕获可用于父元素触发事件，而子元素不触发事件的时候
 
 
-## 编写一个EventUtil工具类实现事件管理兼容
+## 编写一个工具类实现事件管理兼容
+        var EventUtil = {
+            // 页面加载完成后
+            readyEvent : function(fn) {
+                if (fn==null) {
+                    fn=document;
+                }
+                var oldonload = window.onload;
+                if (typeof window.onload != 'function') {
+                    window.onload = fn;
+                } else {
+                    window.onload = function() {
+                        oldonload();
+                        fn();
+                    };
+                }
+            },
+            // 视能力分别使用dom0||dom2||IE方式 来绑定事件
+            // 参数： 操作的元素,事件名称 ,事件处理程序
+            addEvent : function(element, type, handler) {
+                if (element.addEventListener) {
+                    //事件类型、需要执行的函数、是否捕捉
+                    element.addEventListener(type, handler, false);
+                } else if (element.attachEvent) {
+                    element.attachEvent('on' + type, function() {
+                        handler.call(element);
+                    });
+                } else {
+                    element['on' + type] = handler;
+                }
+            },
+            // 移除事件
+            removeEvent : function(element, type, handler) {
+                if (element.removeEventListener) {
+                    element.removeEventListener(type, handler, false);
+                } else if (element.datachEvent) {
+                    element.detachEvent('on' + type, handler);
+                } else {
+                    element['on' + type] = null;
+                }
+            },
+            // 阻止事件 (主要是事件冒泡，因为IE不支持事件捕获)
+            stopPropagation : function(ev) {
+                if (ev.stopPropagation) {
+                    ev.stopPropagation();
+                } else {
+                    ev.cancelBubble = true;
+                }
+            },
+            // 取消事件的默认行为
+            preventDefault : function(event) {
+                if (event.preventDefault) {
+                    event.preventDefault();
+                } else {
+                    event.returnValue = false;
+                }
+            },
+            // 获取事件目标
+            getTarget : function(event) {
+                return event.target || event.srcElement;
+            },
+            // 获取event对象的引用，取到事件的所有信息，确保随时能使用event；
+            getEvent : function(e) {
+                var ev = e || window.event;
+                if (!ev) {
+                    var c = this.getEvent.caller;
+                    while (c) {
+                        ev = c.arguments[0];
+                        if (ev && Event == ev.constructor) {
+                            break;
+                        }
+                        c = c.caller;
+                    }
+                }
+                return ev;
+            }
+        };
 
 ## 事件节流与防抖动
+> 事件节流：throttle 策略的电梯。保证如果电梯第一个人进来后，50毫秒后准时运送一次，不等待。如果没有人，则待机。
+
+        let throttle = (fn, delay = 50) => { 
+            // 节流 控制执行间隔时间 防止频繁触发 scroll resize mousemove
+            let stattime = 0;
+            return function (...args) {
+                let curTime = new Date();
+                if (curTime - stattime >= delay) {
+                    fn.apply(this, args);
+                    stattime = curTime;
+                }
+            }
+        }
+
+> 防抖动：debounce 策略的电梯。如果电梯里有人进来，等待50毫秒。如果又人进来，50毫秒等待重新计时，直到50毫秒超时，开始运送。
+
+        let debounce = (fn, time = 50) => { // 防抖动 控制空闲时间 用户输入频繁
+            let timer;
+            return function (...args) {
+                let that = this;
+                clearTimeout(timer);
+                timer = setTimeout(fn.bind(that, ...args), time);
+            }
+        }
 
 ## js作用域和变量声明提升
+作用域（Scope）即代码执行过程中的变量、函数或者对象的可访问区域，作用域决定了变量或者其他资源的可见性；作用域其实就是所谓的执行上下文（Execution Context），每个执行上下文分为内存分配（Memory Creation Phase）与执行（Execution）这两个阶段。<br>
+作用域分为全局作用域，函数作用域，块级作用域<br>
+1. 在创建步骤中会进行变量对象的创建（Variable Object）、作用域链的创建以及设置当前上下文中的 this 对象。所谓的 Variable Object ，又称为 Activation Object，包含了当前执行上下文中的所有变量、函数以及具体分支中的定义
 
-## es6的块式作用域和let
+        'variableObject': {
+            // contains function arguments, inner variable and function declarations
+        }
+
+2. 在 Variable Object 创建之后，解释器会继续创建作用域链（Scope Chain）；作用域链往往指向其副作用域，往往被用于解析变量。
+
+        'scopeChain': {
+            // contains its own variable object and other variable objects of the parent execution contexts
+        }
+
+3. 执行上下文则可以表述为如下抽象对象：
+
+        executionContextObject = {
+            'scopeChain': {}, // contains its own variableObject and other variableObject of the parent execution contexts
+            'variableObject': {}, // contains function arguments, inner variable and function declarations
+            'this': valueOfThis
+        }
+
+- 变量生命周期与提升
+> 变量的生命周期包含着变量声明（Declaration Phase）、变量初始化（Initialization Phase）以及变量赋值（Assignment Phase）三个步骤；其中声明步骤会在作用域中注册变量，初始化步骤负责为变量分配内存并且创建作用域绑定，此时变量会被初始化为 undefined，最后的分配步骤则会将开发者指定的值分配给该变量。<br>
+> 变量提升只对 var 命令声明的变量有效,块级作用域中使用 let 声明的变量同样会被提升，只不过不允许在实际声明语句前使用<br>
+- 函数生命周期与提升
+> 基础的函数提升同样会将声明提升至作用域头部，不过不同于变量提升，函数同样会将其函数体定义提升至头部；<br>
+> JavaScript 中提供了两种函数的创建方式，函数声明（Function Declaration）与函数表达式（Function Expression）；函数声明即是以 function 关键字开始，跟随者函数名与函数体。而函数表达式则是先声明函数名，然后赋值匿名函数给它<br>
+> 在 ES5 中，是不允许在块级作用域中创建函数的；而 ES6 中允许在块级作用域中创建函数，块级作用域中创建的函数同样会被提升至当前块级作用域头部与函数作用域头部。不同的是函数体并不会再被提升至函数作用域头部，而仅会被提升到块级作用域头部
 
 ## call和apply的区别
+> 传参的不同：call的参数个数不限，apply的参数以数组的形式传入
 
 ## bind函数的实现
 
+        Function.prototype._bind = function(context) {
+            let func = this;
+            let params = [].slice.call(arguments, 1);
+            let Fnop = function() {};
+            let fbound = function() {
+                params = params.concat([].slice.call(arguments, 0));
+                return func.apply(this instanceof Fnop ?this : context, params);
+            }
+            Fnop.prototype = this.prototype;
+            fbound.prototype = new Fnop();
+            return fbound;
+        }
+
 ## 运算符的优先级
+1. . [] ()	字段访问、数组下标、函数调用以及表达式分组
+2. ++ -- - ~ ! delete new typeof void	一元运算符、返回数据类型、对象创建、未定义值
+3. * / %	乘法、除法、取模
+4. + - +	加法、减法、字符串连接
+5. << >> >>>	移位
+6. < <= > >= instanceof	小于、小于等于、大于、大于等于、instanceof
+7. == != === !==	等于、不等于、严格相等、非严格相等
+8. &	按位与
+9. ^	按位异或
+10. |	按位或
+11. &&	逻辑与
+12. ||	逻辑或
+13. ?:	条件
+14. = oP=	赋值、运算赋值
+15. ,	多重求值
 
 ## ==的判断过程
+1. 如果两个值类型相同，按照===比较方法进行比较
+2. 如果类型不同，使用如下规则进行比较
+3. 如果其中一个值是null，另一个是undefined，它们相等
+4. 如果一个值是数字另一个是字符串，将字符串转换为数字进行比较
+5. 如果有布尔类型，将true转换为1，false转换为0，然后用==规则继续比较
+6. 如果一个值是对象，另一个是数字或字符串，将对象转换为原始值然后用==规则继续比较
+7. 其他所有情况都认为不相等
 
 ## 对象到字符串的转换
+1. 如果对象有toString()方法，javascript调用它。如果返回一个原始值（primitive value如：string number boolean）,将这个值转换为字符串作为结果
+2. 如果对象没有toString()方法或者返回值不是原始值，javascript寻找对象的valueOf()方法，如果存在就调用它，返回结果是原始值则转为字符串作为结果
+3. 否则，javascript不能从toString()或者valueOf()获得一个原始值，此时throws a TypeError
 
 ## 对象到数字的转换
+1. 如果对象有valueOf()方法并且返回元素值，javascript将返回值转换为数字作为结果
+2. 否则，如果对象有toString()并且返回原始值，javascript将返回结果转换为数字作为结果
+3. 否则，throws a TypeError
+
+## 哪些操作会造成内存泄漏
+> 内存泄漏指任何对象在您不再拥有或需要它之后仍然存在。
+ 垃圾回收器定期扫描对象，并计算引用了每个对象的其他对象的数量。如果一个对象的引用数量为 0（没有其他对象引用过该对象），或对该对象的惟一引用是循环的，那么该对象的内存即可回收。
+> - setTimeout 的第一个参数使用字符串而非函数的话，会引发内存泄漏。
+> - 闭包、控制台日志、循环（在两个对象彼此引用且彼此保留时，就会产生一个循环）
+
+## promise相关概念
+> Promise是异步编程的一种解决方案，Promise是一个许诺、承诺,是对未来事情的承诺，承诺不一定能完成，但是无论是否能完成都会有一个结果。有三种状态：Pending（进行中）、Resolved（已完成，又称Fulfilled）和Rejected（已失败）。一旦状态改变就不会再变。
+> - 无法取消Promise，一旦新建它就会立即执行，无法中途取消。
+> - 如果不设置回调函数，Promise内部抛出的错误，不会反应到外部。
+> - 当处于Pending状态时，无法得知目前进展到哪一个阶段（刚刚开始还是即将完成）
+- 基本Api:
+    1. PromiseObj.then(resolveFn,rejectFn)
+    2. Promise.all():接受一个数组作为参数，数组中存储的多个 Promise 对象实例把多个 Promise 对象实例，将所有任务的执行结果都统一的放到一个数组中，然后传给自己的 then
+    3. PromiseObj.catch()
+    4. PromiseObj.resolve(),PromiseObj.reject()
+
+## set与map结构
+> Set是一种叫做集合的数据结构，Map是一种叫做字典的数据结构
+- 集合是由一组无序且唯一(即不能重复)的项组成的，可以想象成集合是一个既没有重复元素，也没有顺序概念的数组
+- ES6提供了新的数据结构Set。它类似于数组，但是成员的值都是唯一的，没有重复的值
+- Set 本身是一个构造函数，用来生成 Set 数据结构
+    - size:返回集合所包含元素的数量
+    - add(value)：向集合添加一个新的项
+    - delete(value)：从集合中移除一个值
+    - has(value)：如果值在集合中存在，返回true,否则false
+    - clear(): 移除集合里所有的项
+    - keys()：返回一个包含集合中所有键的数组
+    - values()：返回一个包含集合中所有值的数组
+    - entries：返回一个包含集合中所有键值对的数组(感觉没什么用就不实现了)
+    - forEach()：用于对集合成员执行某种操作，没有返回值
+    - union(other):并集
+    - intersect (other):交集
+    - difference (other):差集
+- 集合是以[值，值]的形式存储元素，字典是以[键，值]的形式存储
+    - set(key, val): 向字典中添加新元素
+    - get(key):通过键值查找特定的数值并返回
+    - has(key):如果键存在字典中返回true,否则false
+    - delete(key): 通过键值从字典中移除对应的数据
+    - clear():将这个字典中的所有元素删除
+    - keys():将字典中包含的所有键名以数组形式返回
+    - values():将字典中包含的所有数值以数组形式返回
+    - forEach()：遍历字典的所有成员
+
+## async与await的应用
+
+## es6迭代器
+- 迭代器函数名前用“*”：function *gen(){}
+- 迭代器遇到yield暂时中止执行，调用迭代器next方法继续执行
+- 与promise co结合使用
+
+        let bluebird = require('bluebirld');
+        let co = require('co');
+        let fs = require('fs');
+        let read = bluebird.promisify(fs.readFile);
+        function *r(){
+            let content1 = yield read('./1.txt','utf8'); //内容 ./2.txt
+            let content2 = yield read(content1,'utf8');
+            return content2;
+        }
+        let it = r();
+        //可以自动迭代generator
+        co(it).then(function(data){
+            console.log(data);
+        });
+        //实现异步代码同步化
