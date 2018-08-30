@@ -590,6 +590,47 @@ tags:
     - forEach()：遍历字典的所有成员
 
 ## async与await的应用
+- async 函数返回一个 Promise 对象，
+- async 函数返回的 Promise 对象，必须等到内部所有的 await 命令的 Promise 对象执行完，才会发生状态改变，
+- 正常情况下，await 命令后面跟着的是 Promise ，如果不是的话，也会被转换成一个 立即 resolve 的 Promise
+- 当 async 函数中只要一个 await 出现 reject 状态，则后面的 await 都不会被执行。解决办法：可以添加 try/catch。
+- 应用：解决promise的回调问题，解决多个promise等待问题
+- Promise的方式
+
+        function promiseLoops () {  
+        const api = new Api()
+        api.getUser()
+            .then((user) => {
+            return api.getFriends(user.id)
+            })
+            .then((returnedFriends) => {
+            const getFriendsOfFriends = (friends) => {
+                if (friends.length > 0) {
+                let friend = friends.pop()
+                return api.getFriends(friend.id)
+                    .then((moreFriends) => {
+                    console.log('promiseLoops', moreFriends)
+                    return getFriendsOfFriends(friends)
+                    })
+                }
+            }
+            return getFriendsOfFriends(returnedFriends)
+            })
+        }
+
+- async
+
+        async function asyncAwaitLoops () {
+            const api = new Api()
+            const user = await api.getUser()
+            const friends = await api.getFriends(user.id)
+
+            for (let friend of friends) {
+            let moreFriends = await api.getFriends(friend.id)
+            console.log('asyncAwaitLoops', moreFriends)
+            }
+        }
+
 
 ## es6迭代器
 - 迭代器函数名前用“*”：function *gen(){}
