@@ -29,7 +29,7 @@ tags:
 - [web安全](#web安全)
 - [解决跨域问题该如何处理cookie](#解决跨域问题该如何处理cookie)
 - [面向对象的三大特性](#面向对象的三大特性)
-- [设计模式](#设计模式)
+- [常见的算法](#常见的算法)
 
 ## 浏览器内核的理解
 >  内核一般指的是浏览器渲染进程，包含GUI渲染线程，js引擎线程，事件触发线程，定时触发器线程，异步http请求线程。GUI渲染线程负责渲染浏览器界面，解析HTML，CSS，构建DOM树和RenderObject树，布局和绘制等；JS引擎线程负责解析Javascript脚本，运行代码。归属于浏览器而不是JS引擎，用来控制事件循环；定时触发器线程来计时并触发定时；在XMLHttpRequest在连接后是通过浏览器新开一个线程请求，就是异步http请求线程
@@ -327,8 +327,99 @@ tags:
 >       - 参数化多态（编译多态）：函数名要相同，参数的个数或者参数的类型不同
 >       - 包含多态（运行多态）：子类对父类的方法进行了重写
 
-## 设计模式
+## 常见的算法
+- 冒泡算法：逐个的比较
+    - E A D B H   => A E D B H => A D E B H => A D B E H => A B D E H
 
+            function bubleSort(arr){
+                if({}.toString.call(arr) != "[object Array]"){
+                    console.log("参数不是数组类型");
+                    return [];
+                }
+                let len = arr.length;
+                for(let outer = len;outer >= 2;outer--){
+                    for(let inner = 0;inner < outer-1;inner++){
+                        if(arr[inner] > arr[inner+1]){
+                            let temp = arr[inner];
+                            arr[inner] = arr[inner+1];
+                            arr[inner+1] = temp;
+                            //[arr[inner],arr[inner+1]] = [arr[inner+1],arr[inner]];
+                        }
+                    }
+                }
+                return arr;
+            }
+
+    - 平均时间复杂度为O(n^2),最坏情况为O(n^2),空间复杂度为O(1)
+
+- 选择排序：从数组的开头开始，将第一个元素和其他元素作比较，检查完所有的元素后，最小的放在第一个位置，接下来再开始从第二个元素开始，重复以上一直到最后。
+    - E A D B H  => A E D B H => A D E B H -> A B E D H => A B D E H
+
+            function selecSort(arr){
+                if({}.toString.call(arr) != "[object Array]"){
+                    console.log("参数不是数组类型");
+                    return [];
+                }
+                let len = arr.length;
+                for(let i = 0;i < len-1;i++){
+                    for(let j = i;j < len;j++){
+                        if(arr[i] > arr[j]){
+                            [arr[i],arr[j]] = [arr[j],arr[i]];
+                        }
+                    }
+                }
+            }
+
+    - 平均时间复杂度为O(n^2),最坏为O(n^2),空间复杂度为O(1)
+
+- 插入排序：将待排序的第一个记录作为一个有序段，从第二个开始，到最后一个，依次和前面的有序段进行比较，确定插入位置
+    - E A D B H => A E D B H => A D E B H => A B D E H 
+
+            function insertSort(arr){
+                if({}.toString.call(arr) != "[object Array]"){
+                    console.log("参数不是数组类型");
+                    return [];
+                }
+                let len = arr.length;
+                for(let i = 1;i < len;i++){
+                    for(let j = i;j > 0;j--){
+                        if(arr[j] < arr[j-1]){
+                            [arr[j],arr[j-1]] = [arr[j-1],arr[j]];
+                        }else{
+                            break;
+                        }
+                    }
+                }
+                return arr;
+            }
+
+    - 平均时间复杂度O(n^2),最坏为O(n^2),空间复杂度为O(1)
+    - 插入排序在前面为有序的情况下的时间复杂度为O(n)
+
+- 快速排序：通过递归的方式将数据依次分解为包含较小元素和较大元素的不同子序列。该算法不断重复这个步骤直至所有数据都是有序的。
+    - 1.选择一个基准元素，将列表分割成两个子序列；2.对列表重新排序，将所有小于基准值的元素放在基准值前面，所有大于基准值的元素放在基准值的后面；3.分别对较小元素的子序列和较大元素的子序列重复步骤1和2
+    - 6, 3, 45,2 , 55, 23, 5, 4 => 3,2,5,4,6,45,55,23 => 2,3,5,4,6,23,45,55 => 2,3,4,5,6,23,45,55
+
+            function quickSort(arr){
+                if(arr.length <= 1){
+                    return arr;
+                }
+                let left = [];
+                let right = [];
+                let current = arr.splice(0,1);
+                for(let i = 0; i < arr.length;i++){
+                    if(arr[i] < current){
+                        left.push(arr[i])
+                    }else{
+                        right.push(arr[i])
+                    }
+                }
+                return quickSort(left).concat(current,quickSort(right));
+            }
+
+    - 平均时间复杂度O(nlogn),最坏O(n^2),空间复杂度O(logn)
+
+    
 ---
 
 
