@@ -23,11 +23,13 @@ tags:
 - [计算机网络的分层](#计算机网络的分层)
 - [http与https](#http与https)
 - [http的request和response报文结构](#http的request和response报文结构)
+- [请求头contenttype的几种值](#请求头contenttype的几种值)
 - [http状态码](#http状态码)
 - [cdn原理及更新机制](#cdn原理及更新机制)
 - [如何进行网站性能优化](#如何进行网站性能优化)
 - [web安全](#web安全)
 - [解决跨域问题该如何处理cookie](#解决跨域问题该如何处理cookie)
+- [cors请求的类别](#cors请求的类别)
 - [面向对象的三大特性](#面向对象的三大特性)
 - [常见的算法](#常见的算法)
 
@@ -170,6 +172,19 @@ tags:
 > 3. 响应头部和响应实体之间用一个CRLF空行分隔
 > 4. 最后是一个可能的消息实体
 
+## 请求头contenttype的几种值
+- application/x-www-form-urlencoded：
+    - 浏览器的原生 form 表单，如果不设置 enctype 属性，那么最终就会以 application/x-www-form-urlencoded 方式提交数据。
+    - 提交的数据放于Form Data，提交的数据按照 key1=val1&key2=val2 的方式进行编码，key 和 val 都进行了 URL 转码，以tomcat作为服务器的后端可通过request.getParameter(name)获取参数
+- multipart/form-data：
+    - 上传文件时必须设置contentType为这个值
+    - Content-Type 里指明了数据是以 mutipart/form-data 来编码，本次请求的 boundary 是什么内容。
+    - 提交的数据放于RequestPayload，消息主体里按照字段个数又分为多个结构类似的部分，每部分都是以 –boundary 开始，紧接着内容描述信息，然后是回车，最后是字段具体内容（文本或二进制）。如果传输的是文件，还要包含文件名和文件类型信息。消息主体最后以 –boundary– 标示结束。
+- application/json：
+    - 消息主体是序列化后的 JSON 字符串,可用于传输复杂结构的数据
+    - 提交的数据放于RequestPayload
+- text/plain：
+    - 原生ajax的默认值，提交的数据放于RequestPayload
 ## http状态码
 > 1**(信息类)：表示接收到请求并且继续处理<br>
 > - 100——客户必须继续发出请求
@@ -319,6 +334,19 @@ tags:
 - nigix转发：通过配置proxy_cookie_*的相关配置，使转发时带上cookie(ip等信息同样可以带上)
 - CORS跨域：可通过设置Access-Control-Allow-Credentials:true来使请求带上cookie（客户端xhr.withCredentials也要设为true）
 - 主域名相同：设置cookie的domain为主域名(如qq.com)
+
+## cors请求的类别
+- 简单请求-满足以下两个条件：
+    1. 请求方法是HEAD、GET、POST中的一种
+    2. HTTP的头信息不超出以下几种字段：
+        - Accept
+        - Accept-Language
+        - Content-Language
+        - Last-Event-ID
+        - Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/form-data、text/plain
+- 对于简单请求，浏览器直接发出CORS请求。具体来说，就是在头信息之中，增加一个Origin字段。
+- 非简单请求：
+- 非简单请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为"预检"请求（preflight），请求类型为options,预检"请求可通过accept-control-max-age控制缓存时间
 
 ## 面向对象的三大特性
 >  - 封装：封装是指将客观事物抽象成类，每个类对自身的数据和方法实行保护。类可以把自己的数据和方法只让可信的类或者对象操作，对不可信的进行信息隐藏。

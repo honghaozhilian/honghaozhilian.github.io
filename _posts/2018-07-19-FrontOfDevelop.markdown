@@ -30,6 +30,7 @@ tags:
 - [页面编码和被请求的资源编码如果不一致如何处理](#页面编码和被请求的资源编码如果不一致如何处理)
 - [AMD和CMD规范区别](#AMD和CMD规范区别)
 - [cmd的核心原理是什么](#cmd的核心原理是什么)
+- [commonjs与es6模块的区别](#commonjs与es6模块的区别)
 - [事件的捕获冒泡的应用场景](#事件的捕获冒泡的应用场景)
 - [编写一个工具类实现事件管理兼容](#编写一个工具类实现事件管理兼容)
 - [事件节流与防抖动](#事件节流)
@@ -349,6 +350,78 @@ tags:
 <img src="{{ site.baseurl }}/img/cmd.png" alt="cmd原理"/>
 
 > 相关文档：http://annn.me/how-to-realize-cmd-loader/
+
+## commonjs与es6模块的区别
+- commonJS：
+    1. 对于基本数据类型，属于复制，引入模块后改变不会影响另一个模块，对于引用类型属于浅拷贝
+    2. 当使用require命令加载某个模块时，运行时才会加载，而且是同步加载
+    3. 当使用require命令加载同一个模块时，不会再执行该模块，而是取到缓存之中的值。也就是说，CommonJS模块无论加载多少次，都只会在第一次加载时运行一次，以后再加载，就返回第一次运行的结果，除非手动清除系统缓存。
+    4. 循环加载时，属于加载时执行。即脚本代码在require的时候，就会全部执行。一旦出现某个模块被"循环加载"，就只输出已经执行的部分，还未执行的部分不会输出。
+
+            // b.js
+            exports.done = false
+            let a = require('./a.js')
+            console.log('b.js-1', a.done)
+            exports.done = true
+            console.log('b.js-2', '执行完毕')
+
+            // a.js
+            exports.done = false
+            let b = require('./b.js')
+            console.log('a.js-1', b.done)
+            exports.done = true
+            console.log('a.js-2', '执行完毕')
+
+            // c.js
+            let a = require('./a.js')
+            let b = require('./b.js')
+
+            console.log('c.js-1', '执行完毕', a.done, b.done)
+
+            node c.js
+            b.js-1 false
+            b.js-2 执行完毕
+            a.js-1 true
+            a.js-2 执行完毕
+            c.js-1 执行完毕 true true
+
+- es6
+    1. ES6模块中的值属于【动态只读引用】
+    2. 对于只读来说，即不允许修改引入变量的值，import的变量是只读的，不论是基本数据类型还是复杂数据类型。当模块遇到import命令时，就会生成一个只读引用。等到脚本真正执行时，再根据这个只读引用，到被加载的那个模块里面去取值。
+    3. import命令具有提升效果，会提升到整个模块的头部，首先执行,本质是import命令是编译阶段执行的，在代码运行之前。由于编译阶段执行所以import不能放于if等条件模块下作为动态加载，现有import()方法的提案来实现动态加载，与commonjs的require方法不同，此方法是异步加载
+    4. 对于动态来说，原始值发生变化，import加载的值也会发生变化。不论是基本数据类型还是复杂数据类型。
+    5. 循环加载时，ES6模块是动态引用。只要两个模块之间存在某个引用，代码就能够执行。
+
+            // b.js
+            import {foo} from './a.js';
+            export function bar() {
+                console.log('bar');
+                if (Math.random() > 0.5) {
+                    foo();
+                }
+            }
+
+            // a.js
+            import {bar} from './b.js';
+            export function foo() {
+                console.log('foo');
+                bar();
+                console.log('执行完毕');
+            }
+            foo();
+
+            babel-node a.js
+            foo
+            bar
+            执行完毕
+
+            // 执行结果也有可能是
+            foo
+            bar
+            foo
+            bar
+            执行完毕
+            执行完毕
 
 ## 事件的捕获冒泡的应用场景
 - addEventlistener的第三个参数决定事件触发应该在捕获阶段还是冒泡阶段（默认是冒泡阶段）
