@@ -21,6 +21,7 @@ tags:
 - [移动端最小触控区域是多大](#移动端最小触控区域是多大)
 - [针对手机高清屏做不同图片处理](#针对手机高清屏做不同图片处理)
 - [高清屏的border为1px会显示为2px](#高清屏的border为1px会显示为2px)
+- [元素设置的position和float后的display的变化](#)
 
 ## 从打开app到刷新出内容整个过程中都发生了什么
 
@@ -81,3 +82,7 @@ tags:
 
         border: none;
         box-shadow: 0 1px 1px -1px rgba(0, 0, 0, 0.5);
+
+## 元素设置的position和float后的display的变化
+根据[规范](https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#dis-pos-flo)，当设置position为aosolute或fixed,或者float不为none,display根据下表:
+    <img src="{{ site.baseurl }}/img/display.png" alt="setState"/>

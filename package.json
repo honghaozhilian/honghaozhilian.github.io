@@ -13,6 +13,6 @@
     },
     "scripts": {
         "preview": "cd _site; python -m SimpleHTTPServer 8020",
-        "watch": "jekyll serve -w;"
+        "watch": "jekyll serve -w"
     }
 }
